@@ -1,13 +1,14 @@
 #include<stdio.h>
 #include<arpa/inet.h>
 #include<sys/socket.h>
+#include<pthread.h>
 #include<unistd.h>
 #include<stdlib.h>
 #include<string.h>
 #include<netinet/in.h>
 #include<signal.h>
 
-
+#define BUF_SIZE 3000
 void* connection_handler(void*);
 
 int main(int argc, char *argv[]){
@@ -42,12 +43,31 @@ int main(int argc, char *argv[]){
     }
     sock_len = sizeof(struct sockaddr_in);
 
-    if(new_socket = accept(socket_desc, (struct sockaddr*)&client, (socklen_t*)&sock_len) > 0){
+    while((new_socket = accept(socket_desc, (struct sockaddr*)&client, (socklen_t*)&sock_len)) > 0){
         pthread_t pid;
         new_sock = malloc(1);
         new_sock = new_socket;
+        if(write(new_socket, "enter your name:",strle("enter your name:")) < 0){
+            printf("> write falied...\n");
+        }
+        pthread_t pid;
+        if(pthread_create(&pid, NULL, connection_handler, (void*)new_sock) < 0)
+         {
+			perror("could not create thread");
+			return 1;
+		}
+    }
+
+     if(new_socket < 0){
+        perror("accept failed\n");
     }
     
+return 0;
 
+}
 
+void* connection_handler(void* sock_desc){
+    char buf[BUF_SIZE];
+
+    return 0;
 }
