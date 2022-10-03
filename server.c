@@ -9,6 +9,14 @@
 #include<signal.h>
 
 #define BUF_SIZE 3000
+
+typedef struct{
+    struct sockaddr_in sock;
+    char name[256];
+    int sock_desc;
+    client_desc* next;
+} client_desc;
+
 void* connection_handler(void*);
 
 int main(int argc, char *argv[]){
@@ -47,10 +55,7 @@ int main(int argc, char *argv[]){
         pthread_t pid;
         new_sock = malloc(1);
         new_sock = new_socket;
-        if(write(new_socket, "enter your name:",strle("enter your name:")) < 0){
-            printf("> write falied...\n");
-        }
-        pthread_t pid;
+     
         if(pthread_create(&pid, NULL, connection_handler, (void*)new_sock) < 0)
          {
 			perror("could not create thread");
@@ -66,8 +71,24 @@ return 0;
 
 }
 
+void itreate_network(struct sockaddr_in re_client, client_desc *head, char message[BUF_SIZE]){
+    client_desc* client = head;
+    while(client->next != NULL){
+        if(re_client.sin_addr.s_addr != client->sock.sin_addr.s_addr){
+            if(write(client->sock_desc,message, BUF_SIZE) < 0){
+                printf("failed..");
+            }
+            
+        }
+    }
+}
+
 void* connection_handler(void* sock_desc){
     char buf[BUF_SIZE];
-
+    if(write(sock_desc, "enter your name:",strle("enter your name:")) < 0){
+        printf("> write falied...\n");
+    }
     return 0;
 }
+
+

@@ -27,6 +27,8 @@ int main(int argc, char *argv[]){
     client.sin_addr.s_addr = INADDR_ANY;
     client.sin_family = AF_INET;
     client.sin_port = htons(port);
+    signal(SIGPIPE, SIG_IGN);
+
     printf("connecting......");
 retry:
     if(connect(socket_desc, (struct sockaddr*)&client, sizeof(client)) < 0) {
