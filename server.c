@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include<stdbool.h>
 #include<arpa/inet.h>
 #include<sys/socket.h>
 #include<pthread.h>
@@ -10,12 +11,12 @@
 
 #define BUF_SIZE 3000
 
-typedef struct{
+struct client_desc{
     struct sockaddr_in sock;
-    char name[256];
+    char* name;
     int sock_desc;
-    client_desc* next;
-} client_desc;
+    struct client_desc *next;
+};
 
 void* connection_handler(void*);
 
@@ -54,7 +55,7 @@ int main(int argc, char *argv[]){
     while((new_socket = accept(socket_desc, (struct sockaddr*)&client, (socklen_t*)&sock_len)) > 0){
         pthread_t pid;
         new_sock = malloc(1);
-        new_sock = new_socket;
+        *new_sock = new_socket;
      
         if(pthread_create(&pid, NULL, connection_handler, (void*)new_sock) < 0)
          {
@@ -70,15 +71,43 @@ int main(int argc, char *argv[]){
 return 0;
 
 }
+struct client_desc* head_init(int sock, struct sockaddr_in client_sock, char *client_name, struct client_desc* head){
+    struct client_desc *temp = (struct client_desc*)malloc(sizeof(struct client_desc));
+    temp->sock = client_sock;
+    temp->name = client_name;
+    temp->sock_desc = sock;
+    temp->next = NULL;
+    return temp;
+}
+struct client_desc* add_new_client(int sock, struct sockaddr_in client_sock, char *client_name, client_desc* head) {
+    if(head == NULL){
+       return head_init(sock, client_sock, client_name, head);
+    }
+    struct client_desc* temp = head;
+    bool exist = false;
+    while(temp->next != NULL){
+        if(temp->sock.sin_addr.s_addr == client_sock.sin_addr.s_addr){
+            exist = true;
+            break;
+        }
+        temp = temp->next;
+    }
+    if(exist == false){
+        temp->name = client_name;
+        temp->sock = client_sock;
+        temp->sock_desc = sock;
+        temp->next = NULL;
+    }
+    return head;
+}
 
-void itreate_network(struct sockaddr_in re_client, client_desc *head, char message[BUF_SIZE]){
-    client_desc* client = head;
-    while(client->next != NULL){
+void itreate_network(struct sockaddr_in re_client,struct client_desc *head, char message[BUF_SIZE]){
+    struct client_desc* client = head;
+    while(client != NULL){
         if(re_client.sin_addr.s_addr != client->sock.sin_addr.s_addr){
             if(write(client->sock_desc,message, BUF_SIZE) < 0){
                 printf("failed..");
             }
-            
         }
     }
 }
@@ -88,6 +117,7 @@ void* connection_handler(void* sock_desc){
     if(write(sock_desc, "enter your name:",strle("enter your name:")) < 0){
         printf("> write falied...\n");
     }
+    
     return 0;
 }
 
