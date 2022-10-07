@@ -69,7 +69,7 @@ void* recv_thread(void* sock_desc){
     while (1)
     {   printf("> ");
         char recv_msg[BUF_SIZE];
-        int sock = (int*)sock_desc;
+        int sock = *(int*)sock_desc;
         if(recv(sock, recv_msg, BUF_SIZE,0) < 0){
             printf("recv falied...");
         }
@@ -85,8 +85,9 @@ void* send_thread(void* sock_desc){
         printf("> ");
         scanf("%s\n",message);
         fflush(stdin);
-        int sock = (int*)sock_desc;
+        int sock = *(int*)sock_desc;
         if(strcmp(message, "exit()")){
+            send(sock, message, strlen(message)+1,0);
             return 0;
         }
         if(send(sock, message, strlen(message)+1,0) < 0){
