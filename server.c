@@ -10,7 +10,8 @@
 #include<signal.h>
 
 #define BUF_SIZE 3000
-#define NAME_SIZE 64
+#define NAME_SIZE 32
+#define TOTAL_BUF NAME_SIZE+BUF_SIZE
 
 struct client_desc{
     struct sockaddr_in sock_in;
@@ -23,8 +24,15 @@ struct client_desc* head;
 struct client_desc* tall;
 pthread_mutex_t client_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-
-
+void str_end(char *arr, int length){
+   int i;
+  for (i = 0; i < length; i++) { // trim \n
+    if (arr[i] == '\n') {
+        arr[i] = '\0';
+        break;
+    }
+  }
+}
 void add_client_desc(struct client_desc *client_t) {
     pthread_mutex_lock(&client_mutex);
     if(head == NULL){
@@ -44,24 +52,33 @@ void remove_client_desc(int socket) {
         struct client_desc *todel = head;
         head = head->next;
         free(todel);
+        todel = NULL;
     }
     struct client_desc *temp = head;
     while(temp->next->sock_desc!=socket){
         temp = temp->next;
     }
-    if(temp->next->next != NULL)
-         desc = temp->next->next;
-    else{
-        
-    }
-
-
-
+    struct client_desc* todel = temp->next;
+    temp->next = temp->next->next;
+    free(todel);
+    todel = NULL;
     pthread_mutex_unlock(&client_mutex);
 }
 
-void connection_handler(void* client_t){
+void iterate_client(int socket, char message[TOTAL_BUF]){
+    pthread_mutex_lock(&client_mutex);
+    struct client_desc* temp = head;
+    while(temp!=NULL){
+        if(temp->sock_desc != socket){
+            write(temp->sock_desc, message, TOTAL_BUF-1);
+        }
+        temp = temp->next;
+    }
+    pthread_mutex_unlock(&client_mutex);
+}
 
+void* connection_handler(void* client_t){
+    
 }
 
 int main(int argc, char *argv[]){
@@ -85,7 +102,7 @@ int main(int argc, char *argv[]){
     signal(SIGPIPE, SIG_IGN);
 
     if(bind(socket_desc, (struct sockaddr*)&server,sizeof(server)) < 0){
-        printf("binding failed");
+        printf("binding failed\n");
         return EXIT_FAILURE;
     }
 
@@ -97,20 +114,17 @@ int main(int argc, char *argv[]){
     int read_ = -1;
     printf("accepting ......\n");
     while((new_socket = accept(socket_desc, (struct sockaddr*)&client, (socklen_t*)&sock_len)) > 0){
-        write(new_socket, "------======Welcome to chat server=====-----\nenter your name : ", strlen("------======Welcome to chat server=====-----\nenter your name : "));
-        char msg[NAME_SIZE];
+        write(new_socket, "  ------======Welcome to chat server=====-----\n", strlen("------======Welcome to chat server=====-----"));
         struct client_desc* client_t = (struct client_desc*)malloc(sizeof(struct client_desc));
-        read_ = read(new_socket, client_t->name, NAME_SIZE);
+        client_t->sock_in = client;
         client_t->sock_desc = new_socket;
-        client_t->sock_in.sin_addr.s_addr = client.sin_addr.s_addr;
-
-        add_client_desc(client_t);
         pthread_t pid;
-        if(pthread_create(&pid, NULL, connection_handler, (void*)(client_t)) < 0)
+        if(pthread_create(&pid, NULL, &connection_handler,(void*)client_t) < 0)
         {
 			perror("could not create thread");
 			return 1;
 		}
+        sleep(1);
     }
 
     if(new_socket < 0){

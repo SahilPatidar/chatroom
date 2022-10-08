@@ -11,8 +11,18 @@
 
 void* recv_thread(void* );
 void* send_thread(void* );
-
-
+void catch(int sig){
+    exit(EXIT_SUCCESS);
+}
+void str_end(char *arr, int length){
+   int i;
+  for (i = 0; i < length; i++) { // trim \n
+    if (arr[i] == '\n') {
+        arr[i] = '\0';
+        break;
+    }
+  }
+}
 int main(int argc, char *argv[]){
     if(argc < 2){
         printf("usage %s <port>",argv[0]);
@@ -27,7 +37,7 @@ int main(int argc, char *argv[]){
     client.sin_addr.s_addr = INADDR_ANY;
     client.sin_family = AF_INET;
     client.sin_port = htons(port);
-    signal(SIGPIPE, SIG_IGN);
+    signal(SIGINT, catch);
 
     printf("connecting......");
 retry:
@@ -79,21 +89,25 @@ void* recv_thread(void* sock_desc){
 }
 
 void* send_thread(void* sock_desc){
+    char message[BUF_SIZE] = {};
+
     while (1)
     {   
-        char message[BUF_SIZE];
         printf("> ");
-        scanf("%s\n",message);
         fflush(stdin);
+        fgets(message,BUF_SIZE,stdin);
+        str_end(message,BUF_SIZE);
         int sock = *(int*)sock_desc;
-        if(strcmp(message, "exit()")){
+        if(strcmp(message, ".exit")){
             send(sock, message, strlen(message)+1,0);
-            return 0;
+            goto ret;
         }
         if(send(sock, message, strlen(message)+1,0) < 0){
             printf("send falied...");
         }
+        bzero(message,BUF_SIZE);
     }
+ret:
     return 0;
 }
 
